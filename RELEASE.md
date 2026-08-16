@@ -8,6 +8,20 @@ too.
 Verify each item in the Console before submitting — Play's forms and wording
 drift over time, so treat this as the intent, not a transcript of the UI.
 
+## Where the app itself lives
+
+The app is **`Tesfalemt/client-tracker`** — the repo name predates the rename
+to CutPay. Identifiers as they stand:
+
+| Field | Value |
+| --- | --- |
+| Package name | `com.cutpay.app` |
+| Display name | CutPay |
+| Version / versionCode | `0.1.0` / `1`, both in `app.json` |
+
+The package name is **permanent from the first publish**. Change it before
+that upload or never.
+
 ## URLs the listing needs
 
 | Field | Value |
@@ -17,9 +31,9 @@ drift over time, so treat this as the intent, not a transcript of the UI.
 | Support email | `uaeutemie5@icloud.com` |
 
 Both must load publicly, over HTTPS, with no login and no redirect to a
-sign-in wall. Confirm GitHub Pages is enabled for this repo and serving from
-the default branch before submitting — a privacy policy URL that 404s is an
-automatic rejection.
+sign-in wall. GitHub Pages is enabled and deploying from `main`, so these go
+live when a change merges — a privacy policy URL that 404s is an automatic
+rejection.
 
 ## Data safety form
 
@@ -67,6 +81,33 @@ messaging app, dialer), which Play treats as user-initiated, not collection.
 - Meet Play's current target API level requirement for new releases.
 - Use Play App Signing and keep the upload key backed up somewhere you will
   still have it in two years.
+
+## Producing the bundle
+
+`eas.json` in the app repo defines the profiles. From that repo:
+
+```bash
+npx expo run:android          # run it locally first — see the warning below
+eas build --platform android --profile preview      # installable APK, for testers
+eas build --platform android --profile production   # .aab, for Play
+```
+
+`appVersionSource` is `local`, so `versionCode` in `app.json` is the single
+source of truth — bump it by hand for every upload. Play rejects a bundle whose
+versionCode it has already seen.
+
+Submitting from the CLI needs a Google Cloud service-account key with the Play
+Developer API enabled and access granted in the Console. `eas.json` expects it
+at `./play-service-account.json`, which is gitignored. That key grants publish
+rights to the whole app — never commit it, and never paste it into a chat.
+
+```bash
+eas submit --platform android --profile production
+```
+
+**Run the app before building anything.** Every screen was written and unit
+tested but the app has never been launched on a device or emulator, so
+`npx expo run:android` is the first real check that it boots at all.
 
 ## Before you can ship to production
 
