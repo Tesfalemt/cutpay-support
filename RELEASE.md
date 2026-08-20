@@ -52,6 +52,11 @@ The client names, phone numbers and amounts the barber types in are **not**
 Nothing here leaves the device except by an explicit user action (share sheet,
 messaging app, dialer), which Play treats as user-initiated, not collection.
 
+The backup file added in Phase 7 does not change this answer. It is written on
+a tap, handed to the share sheet, and goes wherever the barber sends it — the
+app has no destination of its own and uploads nothing. Same category as the CSV
+export, and declared the same way.
+
 ## Declarations that are easy to get wrong
 
 - **Financial features — declare none.** CutPay is a written record. It does
@@ -111,6 +116,11 @@ As of the current build that yields:
 | `SYSTEM_ALERT_WINDOW` | Expo bare template | **Blocked** — see below. |
 | `VIBRATE` | Expo bare template | **Blocked** — see below. |
 
+Re-checked after `expo-document-picker` was added for restore in Phase 7: it
+declares no permissions. It goes through the system document picker, so the app
+is handed a scoped URI for the one file the user chose rather than the right to
+browse storage. The list above is unchanged.
+
 `SYSTEM_ALERT_WINDOW` is the one that would have caused trouble. It shows on the
 listing as **"Display over other apps"** — a strange thing for an offline ledger
 to want, and squarely at odds with a privacy policy whose whole claim is that
@@ -153,7 +163,7 @@ Facts below were read from a real `expo prebuild`, not inferred:
 | `minSdkVersion` | 24 | No floor; covers Android 7+. |
 | `applicationId` | `com.cutpay.app` | Permanent from first publish. |
 | `versionCode` / `versionName` | `1` / `0.1.0` | Bump `versionCode` for every upload. |
-| Android bundle | builds — 1346 modules, no unresolved imports | — |
+| Android bundle | builds — 1356 modules, no unresolved imports | — |
 
 `npx expo export --platform android` bundles cleanly. That proves every import
 resolves under Metro, which the jest suites do **not** prove: they mock
