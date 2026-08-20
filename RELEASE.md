@@ -165,9 +165,18 @@ Facts below were read from a real `expo prebuild`, not inferred:
 | `versionCode` / `versionName` | `1` / `0.1.0` | Bump `versionCode` for every upload. |
 | Android bundle | builds — 1356 modules, no unresolved imports | — |
 
-`npx expo export --platform android` bundles cleanly. That proves every import
-resolves under Metro, which the jest suites do **not** prove: they mock
-`src/db/database` and resolve differently. It does **not** prove the app boots.
+`npx expo export --platform android` bundles cleanly — 1360 modules. That
+proves every import resolves under Metro, which the jest suites do **not**
+prove: they mock `src/db/database` and resolve differently.
+
+Stronger than that now: the app has actually **run**. The web target boots,
+migrates, and takes real writes — the `store/` screenshots were made by entering
+cuts, bookings and a payment through the real forms. Running it that way found
+two defects that had been in the repo since Phase 1: the web bundle could not
+resolve `wa-sqlite.wasm`, and every transaction failed on web, which meant no
+write of any kind could succeed there. Both fixed; neither affected Android.
+
+It still does **not** prove the app boots on Android.
 
 One known warning, harmless: `userInterfaceStyle: Install expo-system-ui in your
 project to enable this feature`. `app.json` asks for a dark UI but that setting
@@ -208,20 +217,29 @@ tested but the app has never been launched on a device or emulator, so
 Play will not let the listing be completed without these. What the repo has
 today, and what it does not:
 
+All of these now live in **`store/` in the app repo** (`Tesfalemt/client-tracker`).
+
 | Asset | Requirement | State |
 | --- | --- | --- |
-| App icon | 512×512 PNG, 32-bit | **Have it** — `assets/icon.png` is 1024×1024; Play accepts it and downscales, or export a 512 copy. |
-| Adaptive icon | foreground + background | **Have it** — 512×512 each, plus a 432×432 monochrome for themed icons. |
-| Feature graphic | 1024×500 PNG/JPG, no alpha | **Missing.** Required for every listing. |
-| Phone screenshots | 2–8, 16:9 or 9:16, 320–3840px each side | **Missing.** Minimum of two is enforced. |
-| Short description | ≤80 characters | Draft below. |
-| Full description | ≤4000 characters | Draft below. |
+| App icon | 512×512 PNG, 32-bit | **Ready** — `store/play-icon-512.png`. |
+| Adaptive icon | foreground + background | **Ready** — in `assets/`, 512×512 each, plus a 432×432 monochrome. |
+| Feature graphic | 1024×500 PNG/JPG, no alpha | **Ready** — `store/feature-graphic.png`. |
+| Phone screenshots | 2–8, 16:9 or 9:16, 320–3840px each side | **Six, ready** — `store/screenshots/`, 1236×2196. Read the caveat. |
+| Short description | ≤80 characters | Ready, below. |
+| Full description | ≤4000 characters | Ready, below. |
 
-Screenshots have to come from the app actually running. There is no way around
-that and no way to fake it honestly — they are what a reviewer and a buyer look
-at, and Play rejects listings whose screenshots do not depict the real app. Run
-`npx expo run:android`, seed a few cuts and bookings by hand, and capture at
-least: Today with money on it, Log a cut, Schedule, and Money.
+**The screenshot caveat.** They are the real app — the actual screens, running
+the actual code, against a real SQLite database, with five cuts, three bookings
+and a matched Zelle payment entered through the real forms. They are not
+mockups. But they were captured from the **web build**, not from an Android
+device, so font rendering and spacing are close to Android without being
+identical, and there is no status bar.
+
+That is good enough to complete a listing. It is not good enough to ship
+without looking: once `npx expo run:android` has been done, retake them on the
+phone — four taps per screen — and replace them. Play rejects listings whose
+screenshots do not depict the real app, and layout that drifts on a real screen
+would be exactly that.
 
 ### Short description (80 max)
 
@@ -264,11 +282,13 @@ written from the current feature set.
 
 In order. Steps 1–3 are the ones that cannot be rushed.
 
-1. **Run the app on a real device.** `npx expo run:android`. It has still never
-   been launched — see the warning under *Producing the bundle*. Everything
-   below is wasted effort if it does not boot.
-2. **Capture the screenshots and build the feature graphic** while it is
-   running.
+1. **Run the app on a real device.** `npx expo run:android`. It has now been
+   run on the web target — it boots, migrates and takes real writes — but never
+   on Android, and only a device exercises the share sheet, document picker,
+   dialer and messaging hand-offs. Everything below is wasted effort if it does
+   not boot on a phone.
+2. **Retake the screenshots on the device** and replace the ones in `store/`.
+   The feature graphic and icon are done and need no device.
 3. **Confirm both listing URLs load** in a normal browser, signed out:
    `https://tesfalemt.github.io/cutpay-support/` and `/privacy.html`. A privacy
    URL that 404s is an automatic rejection.
@@ -287,6 +307,28 @@ In order. Steps 1–3 are the ones that cannot be rushed.
 Steps 4 onward need Play Console credentials and cannot be done from a
 repository. `eas submit` needs `play-service-account.json`, which is gitignored
 and deliberately not in this repo.
+
+## What cannot be done from a Claude Code session
+
+Recorded because it has been asked more than once, and the answer is not about
+permission.
+
+The session's network policy refuses the hosts this would need. Both fail at
+the proxy's CONNECT, before any question of a login:
+
+| Host | Result |
+| --- | --- |
+| `play.google.com:443` | `403 — policy denial` |
+| `api.expo.dev:443` | `403 — policy denial` |
+
+So the Play Console cannot be opened, and EAS cannot be reached — which also
+means **no `.aab` can be produced here at all**, there being no Android SDK in
+the container for a local build either. There is no bundle to submit even if the
+Console were reachable.
+
+Granting permission does not change this. A sandbox network policy is not a
+consent prompt. Everything up to the upload is in `store/` and in this file;
+the upload itself is a laptop, a browser and about twenty minutes.
 
 ## Before you can ship to production
 
