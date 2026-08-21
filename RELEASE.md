@@ -263,8 +263,10 @@ That is 68 characters.
 > • See today's takings and exactly who still owes you
 > • Match payments that arrived under an unfamiliar name
 > • Book clients in ahead, and see what is still to come today
+> • See who is overdue for a cut, and book them straight from the list
 > • Send a reminder from your own number — you press send, never the app
 > • Export any period as a CSV for your accountant
+> • Back up everything to a single file, and restore it on a new phone
 >
 > **It is a written record, not a payment app.** CutPay does not connect to
 > Zelle, Venmo, Cash App, or any bank. It never touches money and never sees
@@ -282,20 +284,37 @@ written from the current feature set.
 
 In order. Steps 1–3 are the ones that cannot be rushed.
 
-1. **Run the app on a real device.** `npx expo run:android`. It has now been
-   run on the web target — it boots, migrates and takes real writes — but never
-   on Android, and only a device exercises the share sheet, document picker,
-   dialer and messaging hand-offs. Everything below is wasted effort if it does
-   not boot on a phone.
+1. **Install the APK on a real phone.** There is now a signed one to install:
+   open [build `cbe6d5ad`][build] on the phone and tap install — no Android
+   SDK, no `expo run:android`, no cable. CutPay has been run on the web target
+   (it boots, migrates and takes real writes) but **never on Android**, and
+   only a device exercises the share sheet, document picker, dialer and
+   messaging hand-offs. A green cloud build proves the app *compiles*; it does
+   not prove it boots. Everything below is wasted effort if it does not.
 2. **Retake the screenshots on the device** and replace the ones in `store/`.
    The feature graphic and icon are done and need no device.
 3. **Confirm both listing URLs load** in a normal browser, signed out:
    `https://tesfalemt.github.io/cutpay-support/` and `/privacy.html`. A privacy
    URL that 404s is an automatic rejection.
-4. **Create the app in the Play Console** — name CutPay, package
-   `com.cutpay.app`. The package name is permanent from here.
-5. **Build the bundle.** `eas build --platform android --profile production`,
-   or run the Release workflow in the app repo. Needs `EXPO_TOKEN`.
+4. **Create the app in the Play Console.** *All apps* → *Create app*. This is
+   the step no tool can do for you — the Play Developer API has no method for
+   it. Five fields:
+
+   | Field | Value |
+   | --- | --- |
+   | App name | `CutPay` |
+   | Default language | English (United States) |
+   | App or game | App |
+   | Free or paid | Free |
+   | Declarations | tick both (developer programme policies, US export laws) |
+
+   Note what it does **not** ask for: the package name. `com.cutpay.app` is
+   bound by the *first bundle you upload*, not here — which is why `app.json`
+   already carries it and must not change afterwards. Free→paid is a one-way
+   door too; a free app can never be made paid.
+5. **Build the bundle.** Run the Release workflow in the app repo with
+   `profile: production` — proven working, and `EXPO_TOKEN` is already set.
+   Leave `submit` unticked until step 6 is done.
 6. **Fill the declarations** from *Data safety form* and *Declarations that are
    easy to get wrong* above. Financial features: none. Ads: none. Data
    collected: none.
@@ -304,9 +323,11 @@ In order. Steps 1–3 are the ones that cannot be rushed.
    production* below before assuming production is available to you.
 9. **Submit for review.**
 
-Steps 4 onward need Play Console credentials and cannot be done from a
-repository. `eas submit` needs `play-service-account.json`, which is gitignored
-and deliberately not in this repo.
+Steps 4, 6, 7 and 9 need a Console login and cannot be done from a repository.
+Step 5 can now be done entirely from CI. Step 8's upload can too, once
+`PLAY_SERVICE_ACCOUNT` exists — see *Getting `PLAY_SERVICE_ACCOUNT`* in the app
+repo's README for how to make that key, and run the preflight workflow to
+confirm it works before spending a build on finding out.
 
 ## What cannot be done from a Claude Code session
 
@@ -321,14 +342,25 @@ the proxy's CONNECT, before any question of a login:
 | `play.google.com:443` | `403 — policy denial` |
 | `api.expo.dev:443` | `403 — policy denial` |
 
-So the Play Console cannot be opened, and EAS cannot be reached — which also
-means **no `.aab` can be produced here at all**, there being no Android SDK in
-the container for a local build either. There is no bundle to submit even if the
-Console were reachable.
+So the Play Console cannot be opened from here, and neither can EAS.
 
-Granting permission does not change this. A sandbox network policy is not a
-consent prompt. Everything up to the upload is in `store/` and in this file;
-the upload itself is a laptop, a browser and about twenty minutes.
+**The build half of that is now solved.** GitHub Actions runs on GitHub's
+network, not this sandbox's, so the Release workflow in the app repo reaches
+EAS perfectly well — and on 20 August it produced the first real Android
+build of CutPay, [`cbe6d5ad`][build], a signed preview APK, in nineteen
+minutes. Switching the profile from `preview` to `production` produces the
+`.aab` the same way. An earlier version of this file said no bundle could be
+produced at all; that was true of the container and never true of CI, and it
+is corrected here rather than quietly deleted.
+
+[build]: https://expo.dev/accounts/cutpay/projects/cutpay/builds/cbe6d5ad-3c8c-4985-ad1e-7d8d32102007
+
+What remains genuinely impossible from here is the **Console** — creating the
+app, and the human declarations. Granting permission does not change that: a
+sandbox network policy is not a consent prompt. And no API fixes it either;
+the Play Developer API has no method that creates an app, so even a service
+account with full publishing rights cannot make the first one. It is a browser,
+a Google login, and about ten minutes.
 
 ## Before you can ship to production
 
